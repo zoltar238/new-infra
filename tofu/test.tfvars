@@ -9,12 +9,24 @@ available_locations = {
 
 pub_keys = { andrei = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMxd4Er7oE3oRM6ZVvi4OwbylRHqRL7K+N/fGQ2E4mX/ andrei@andrei-pc" }
 
-servers = {
+vpn_node = {
+  server_type  = "cx23"
+  location     = "nbg1"
+  image        = "ubuntu-26.04"
+  ipv4_enabled = true
+  ipv6_enabled = false
+  labels = {
+    "test" = "test1",
+    "vpn"  = "vpn"
+  }
+}
+
+odoo_nodes = {
   "odoo1" = {
-    server_type  = "cax21"
+    server_type  = "cax11"
     location     = "nbg1"
     image        = "ubuntu-26.04"
-    ipv4_enabled = true
+    ipv4_enabled = false
     ipv6_enabled = false
     labels = {
       "test" = "test1",
@@ -22,10 +34,10 @@ servers = {
     }
   }
   "odoo2" = {
-    server_type  = "cax21"
+    server_type  = "cax11"
     location     = "nbg1"
     image        = "ubuntu-26.04"
-    ipv4_enabled = true
+    ipv4_enabled = false
     ipv6_enabled = false
     labels = {
       "test" = "test1",
