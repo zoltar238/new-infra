@@ -1,0 +1,14 @@
+# IDE files
+/.idea/
+
+# Python
+.venv
+**/__pycache__/
+
+**/.env*
+
+**/terraform.tfstate*
+**/terraform.tfstate.backup*
+**/.terraform/
+
+
