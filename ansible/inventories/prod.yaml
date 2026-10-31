@@ -1,0 +1,6 @@
+# inventory.yml
+vpn:
+  hosts:
+    128.140.110.47:
+      ansible_user: root
+      ansible_ssh_private_key_file: ~/.ssh/test_key

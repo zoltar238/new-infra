@@ -28,7 +28,7 @@ resource "hcloud_server" "vpn_node" {
 
   delete_protection  = true
   rebuild_protection = true
-  firewall_ids       = [hcloud_firewall.firewall.id]
+  // firewall_ids       = [hcloud_firewall.firewall.id]
 
   ssh_keys = values(hcloud_ssh_key.main)[*].id
 

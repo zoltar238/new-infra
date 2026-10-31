@@ -1,0 +1,12 @@
+---
+wg_conf_priv_key: "{{ lookup('ansible.builtin.env', 'WG_PRIV_KEY') | trim }}"
+wg_conf_port: 49911
+# Tunnel networks
+wg_conf_ipv4_subnet: "192.168.24.0/24"
+# IP assigned to wireguard (offset 1)
+wg_conf_address: "{{ wg_conf_ipv4_subnet | ansible.utils.ipmath(1) }}/24"
+wg_conf_interface: wg0
+
+# WAN / egress network interface
+# Dynamically detected from the default gateway via Ansible network facts (e.g. ens18, eth0)
+wg_conf_wan_interface: "{{ ansible_default_ipv4.interface | default(ansible_default_ipv6.interface | default('eth0')) }}"

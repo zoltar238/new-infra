@@ -1,0 +1,19 @@
+# WireGuard client configuration for {{ item.user | default(wg_clients_user | default(wg_client_user | default('client'))) }}
+# Managed by Ansible
+
+[Interface]
+Address = {{ item.ipv4 ~ ', ' ~ item.ipv6 if (item is defined and item.ipv4 is defined) else (wg_clients_address | default(wg_client_address)) }}
+PrivateKey = {{ item.priv_key if (item is defined and item.priv_key is defined) else (wg_clients_private_key | default(wg_client_private_key)) }}
+
+[Peer]
+PublicKey = {{ wg_clients_server_public_key | default(wg_server_public_key) }}
+{% if (item is defined and item.psk is defined) or wg_clients_psk is defined or wg_client_psk is defined %}
+PresharedKey = {{ item.psk if (item is defined and item.psk is defined) else (wg_clients_psk | default(wg_client_psk)) }}
+{% endif %}
+Endpoint = {{ wg_clients_endpoint }}
+{% if wg_clients_route_all_traffic | default(route_all_traffic | default(false)) %}
+AllowedIPs = 0.0.0.0/0, ::/0
+{% else %}
+AllowedIPs = {{ wg_clients_allowed_ips }}
+{% endif %}
+PersistentKeepalive = 25

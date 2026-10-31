@@ -1,0 +1,80 @@
+---
+- name: Ensure network facts are gathered
+  ansible.builtin.setup:
+    gather_subset:
+      - network
+  when: ansible_default_ipv4 is not defined
+
+- name: Create WireGuard directory
+  ansible.builtin.file:
+    path: /etc/wireguard
+    state: directory
+    mode: "0700"
+
+- name: Enable IPv4 forwarding
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_file: /etc/sysctl.d/99-wireguard.conf
+    state: present
+    reload: true
+
+- name: Generate public key from private key
+  ansible.builtin.command:
+    cmd: wg pubkey
+    stdin: "{{ wg_conf_priv_key }}"
+  register: wg_conf_public_key
+  changed_when: false
+  no_log: true
+
+- name: Save public key
+  ansible.builtin.copy:
+    content: "{{ wg_conf_public_key.stdout }}"
+    dest: /etc/wireguard/publickey
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Display public key for reference
+  ansible.builtin.debug:
+    msg: "Public key for {{ inventory_hostname }}: {{ wg_conf_public_key.stdout }}"
+
+- name: Compute peer list
+  ansible.builtin.set_fact:
+    wg_conf_peers: "{{ _conf_peers | from_json }}"
+  vars:
+    _conf_peers: >-
+      {%- set ns = namespace(peers=[]) -%}
+      {%- for user in users -%}
+      {%- set _ = ns.peers.append({
+        "user": user.name,
+        "public_key": user.vpn.pub_key,
+        "allowed_ips": (wg_conf_ipv4_subnet | ansible.utils.ipmath(loop.index + 1)) ~ "/32"
+      }) -%}
+      {%- endfor -%}
+      {{ ns.peers | to_json }}
+
+- name: Deploy WireGuard server configuration
+  ansible.builtin.template:
+    src: templates/wg-server.conf.j2
+    dest: "/etc/wireguard/{{ wg_conf_interface }}.conf"
+    owner: root
+    group: root
+    mode: "0600"
+  # Template renders the server private key
+  no_log: true
+  notify: Restart WireGuard
+
+- name: Enable and start WireGuard
+  ansible.builtin.systemd_service:
+    name: "wg-quick@{{ wg_conf_interface }}"
+    state: started
+    enabled: true
+
+- name: Open WireGuard port in firewall
+  community.general.ufw:
+    rule: allow
+    port: "{{ wg_conf_port }}"
+    proto: udp
+    comment: "WireGuard VPN"
+  failed_when: false

@@ -1,0 +1,6 @@
+- name: Install and configure Wireguard
+  hosts: vpn
+  become: true
+  roles:
+    # - wg_install
+    - wg_conf

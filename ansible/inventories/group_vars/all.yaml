@@ -1,0 +1,5 @@
+ansible_python_interpreter: /usr/bin/python3
+users:
+  - name: andrei
+    vpn:
+      pub_key: "1J2aUgGXCSsV7uwI39BDl0GrvLsKoIZm0oMPZU9CCW0="

@@ -1,0 +1,29 @@
+[Interface]
+Address = {{ wg_conf_address }}
+ListenPort = {{ wg_conf_port }}
+PrivateKey = {{ wg_conf_priv_key }}
+
+# Firewall and traffic routing rules
+# -------------------------------------------------------------------------
+# Incoming VPN traffic and forwarding
+PostUp = iptables -I INPUT -p udp --dport {{ wg_conf_port }} -j ACCEPT
+PostUp = iptables -I FORWARD -o {{ wg_conf_interface }} -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+PostUp = iptables -I FORWARD -i {{ wg_conf_interface }} -j ACCEPT
+
+# IPv4 NAT (Masquerade): any VPN client traffic not going back out through wg
+PostUp = iptables -t nat -A POSTROUTING -s {{ wg_conf_ipv4_subnet }} ! -o {{ wg_conf_interface }} -j MASQUERADE
+
+# Teardown / Cleanup rules
+# -------------------------------------------------------------------------
+PostDown = iptables -D INPUT -p udp --dport {{ wg_conf_port }} -j ACCEPT
+PostDown = iptables -D FORWARD -o {{ wg_conf_interface }} -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+PostDown = iptables -D FORWARD -i {{ wg_conf_interface }} -j ACCEPT
+PostDown = iptables -t nat -D POSTROUTING -s {{ wg_conf_ipv4_subnet }} ! -o {{ wg_conf_interface }} -j MASQUERADE
+
+{% for peer in wg_conf_peers %}
+# {{ peer.user }}
+[Peer]
+PublicKey = {{ peer.public_key }}
+AllowedIPs = {{ peer.allowed_ips }}
+
+{% endfor %}

@@ -1,0 +1,112 @@
+---
+- name: Read server public key from server
+  ansible.builtin.slurp:
+    src: /etc/wireguard/publickey
+  register: _wg_clients_server_pubkey_file
+  when: wg_conf_public_key is not defined
+
+- name: Set WireGuard server public key fact
+  ansible.builtin.set_fact:
+    wg_clients_server_public_key: >-
+      {{ wg_conf_public_key.stdout if (wg_conf_public_key is defined and wg_conf_public_key.stdout is defined)
+         else (_wg_clients_server_pubkey_file.content | b64decode | trim) }}
+
+- name: Fetch secrets from Bitwarden
+  ansible.builtin.command:
+    cmd: bws secret list
+  register: _wg_clients_bws_secrets_raw
+  delegate_to: localhost
+  run_once: true
+  become: false
+  changed_when: false
+  no_log: true
+
+- name: Parse Bitwarden secrets list
+  ansible.builtin.set_fact:
+    _wg_clients_bws_secrets: "{{ _wg_clients_bws_secrets_raw.stdout | from_json }}"
+  run_once: true
+
+- name: Build peer credentials list if not defined
+  ansible.builtin.set_fact:
+    wg_clients_peer_creds: "{{ wg_conf_peer_creds if wg_conf_peer_creds is defined else (_raw_peer_creds | from_json) }}"
+  vars:
+    _raw_peer_creds: >-
+      [
+        {% for user in ssh_users %}
+          {% set priv_item = _wg_clients_bws_secrets | selectattr('key', 'equalto', 'wg_priv_' ~ user.name) | list | first %}
+          {% set psk_item  = _wg_clients_bws_secrets | selectattr('key', 'equalto', 'wg_psk_'  ~ user.name) | list | first %}
+          {
+            "user": "{{ user.name }}",
+            "priv_key": "{{ priv_item.value }}",
+            "psk": "{{ psk_item.value }}",
+            "ipv4": "{{ wg_clients_ipv4_subnet | ansible.utils.ipmath(loop.index + 1) }}/32",
+            "ipv6": "{{ wg_clients_ipv6_subnet | ansible.utils.ipmath(loop.index + 1) }}/128"
+          }{{ ',' if not loop.last else '' }}
+        {% endfor %}
+      ]
+  run_once: true
+  no_log: true
+
+- name: Assemble client profiles and template configurations
+  ansible.builtin.set_fact:
+    wg_clients_profiles: "{{ _raw_profiles | from_json }}"
+  vars:
+    _raw_profiles: >-
+      [
+        {% for peer in wg_clients_peer_creds %}
+          {% set secret_key = wg_clients_secret_prefix ~ peer.user %}
+          {% set matched = _wg_clients_bws_secrets | selectattr('key', 'equalto', secret_key) | list %}
+          {% set rendered = lookup('ansible.builtin.template', 'wg-client.conf.j2', template_vars=dict(item=peer)) %}
+          {
+            "user": "{{ peer.user }}",
+            "secret_key": "{{ secret_key }}",
+            "secret_id": {{ ('"' ~ matched[0].id ~ '"') if matched | length > 0 else 'null' }},
+            "needs_update": {{ (matched | length > 0 and matched[0].value != rendered) | to_json }},
+            "conf_content": {{ rendered | to_json }}
+          }{{ ',' if not loop.last else '' }}
+        {% endfor %}
+      ]
+  run_once: true
+  no_log: true
+
+- name: Create missing WireGuard client configs in Bitwarden
+  ansible.builtin.command:
+    argv:
+      - bws
+      - secret
+      - create
+      - "{{ item.secret_key }}"
+      - "{{ item.conf_content }}"
+      - "{{ bws_project_id }}"
+  loop: "{{ wg_clients_profiles }}"
+  when: item.secret_id is none
+  delegate_to: localhost
+  become: false
+  run_once: true
+  changed_when: true
+  no_log: true
+
+- name: Update existing WireGuard client configs in Bitwarden
+  ansible.builtin.command:
+    argv:
+      - bws
+      - secret
+      - edit
+      - --value
+      - "{{ item.conf_content }}"
+      - "{{ item.secret_id }}"
+  loop: "{{ wg_clients_profiles }}"
+  when: item.secret_id is not none and item.needs_update
+  delegate_to: localhost
+  become: false
+  run_once: true
+  changed_when: true
+  no_log: true
+
+- name: Display status of client configurations
+  ansible.builtin.debug:
+    msg: >-
+      WireGuard profile for {{ item.user }} saved in Bitwarden as '{{ item.secret_key }}'
+      (action: {{ 'created' if item.secret_id is none else ('updated' if item.needs_update else 'unchanged') }})
+  loop: "{{ wg_clients_profiles }}"
+  run_once: true
