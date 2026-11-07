@@ -1,0 +1,47 @@
+services:
+  db:
+    image: pgvector/pgvector:pg18-trixie
+    container_name: ${COMPOSE_PROJECT_NAME}_db
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_PASSWORD=odoo
+      - POSTGRES_USER=odoo
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - db_data:/var/lib/postgresql/data/pgdata
+      - ./config/postgresql.conf:/etc/postgresql/postgresql.conf
+    restart: unless-stopped
+
+  odoo:
+    container_name: ${COMPOSE_PROJECT_NAME}_odoo
+    image: odoo:${ODOO_VERSION:-19}
+    mem_limit: ${ODOO_MEM_LIMIT:-2g}
+    cpus: ${ODOO_CPUS:-1.0}
+    ports:
+      - "8069:${ODOO_EXPOSED_PORT:-8069}"
+    volumes:
+      - ./config:/etc/odoo
+      - odoo_data:/var/lib/odoo
+{% for repo in item.repos %}
+      - ./{{ repo.name }}:/mnt/{{ repo.name }}
+{% endfor %}
+    environment:
+      # Postgres container name
+      - HOST=${COMPOSE_PROJECT_NAME}_db
+      # Postgres user
+      - USER=odoo
+      # Postgres password
+      - PASSWORD=odoo
+      - DB_TEMPLATE=template0
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  odoo_data:
+    name: ${COMPOSE_PROJECT_NAME}_odoo_data
+    external: ${VOLUME_EXTERNAL:-false}
+  db_data:
+    name: ${COMPOSE_PROJECT_NAME}_db_data
+    external: ${VOLUME_EXTERNAL:-false}
+

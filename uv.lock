@@ -19,6 +19,21 @@ wheels = [
 ]
 
 [[package]]
+name = "bitwarden-sdk"
+version = "2.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "python-dateutil" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9a/8b/561140803e14f5fcb461814af08efe686ff4f07eb0fe8d6721cb887008bf/bitwarden_sdk-2.1.0-cp39-abi3-macosx_10_12_x86_64.whl", hash = "sha256:659b7e3faaab067f38556ffaaa7edf217e581047234f9a748770fa2926d2664c", size = 3720715, upload-time = "2026-05-21T22:39:54.125Z" },
+    { url = "https://files.pythonhosted.org/packages/f4/7c/b4d87586010d365c01cffe2e1b28814072fae3c7a59dcfd85c7a51d11b7e/bitwarden_sdk-2.1.0-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:8374ef97e481c17a0b65e1b8d700df492cb384ff5a4888bd2c697c37457fc332", size = 3516944, upload-time = "2026-05-21T22:39:56.418Z" },
+    { url = "https://files.pythonhosted.org/packages/cf/56/44bdc84935648f735ce80df7e88cdaa133fb45a2fee745343ea2dfa26095/bitwarden_sdk-2.1.0-cp39-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:cdf85d309aecf21c563c9245322d49a344135761d03cffa43b8703f509bc0df7", size = 3315068, upload-time = "2026-05-21T22:39:58.075Z" },
+    { url = "https://files.pythonhosted.org/packages/7e/f4/ccdcadee82f88ec3c52a3b6e0db11df4c5587db171a2c979e4e9eb76b1d4/bitwarden_sdk-2.1.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b6f6b2624e340307891edc20a2860ec0b7c2140683eec2ce2e20d1076ffe9268", size = 3519632, upload-time = "2026-05-21T22:39:59.861Z" },
+    { url = "https://files.pythonhosted.org/packages/58/49/cb3ed348f7bd35cc323021c11bee70304e446f3d5a6fca678987b4c47d23/bitwarden_sdk-2.1.0-cp39-abi3-win_amd64.whl", hash = "sha256:2c5de50af003b7b2d16a9a690d3111480d1b1962eb25f39e416812d6d9d4e4d6", size = 3453431, upload-time = "2026-05-21T22:40:01.481Z" },
+]
+
+[[package]]
 name = "cffi"
 version = "2.1.1"
 source = { registry = "https://pypi.org/simple" }
@@ -146,12 +161,14 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "ansible-core" },
+    { name = "bitwarden-sdk" },
     { name = "netaddr" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "ansible-core", specifier = ">=2.21.5" },
+    { name = "bitwarden-sdk", specifier = ">=2.1.0" },
     { name = "netaddr", specifier = ">=1.3.0" },
 ]
 
@@ -273,6 +290,18 @@ wheels = [
 ]
 
 [[package]]
+name = "python-dateutil"
+version = "4.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "tzdata" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/18/39/b3927f3616f6223832f9b760e4208e8a7c7e1dea2b4d9ad7d32a5d214c3a/python_dateutil-4.0.0.tar.gz", hash = "sha256:d7295ff14fdc0f92f662100bfb6c551d160ca090f2939f1ec5b9794265c03f06", size = 250419, upload-time = "2026-11-01T07:02:42.426Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2f/a9/52b89563d154433d79b51ed1eb4842bf7334cb2696891a7fe135618853d7/python_dateutil-4.0.0-py3-none-any.whl", hash = "sha256:a5e246f79eb80475e691bf93862cead98decd8a498cf53ba0516fcdc0f50dc1c", size = 92853, upload-time = "2026-11-01T07:02:40.797Z" },
+]
+
+[[package]]
 name = "pyyaml"
 version = "6.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -305,4 +334,13 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/1d/14/4669927e06631070edb968c78fdb6ce8992e27c9ab2cde4b3993e22ac7af/resolvelib-1.2.1.tar.gz", hash = "sha256:7d08a2022f6e16ce405d60b68c390f054efcfd0477d4b9bd019cc941c28fad1c", size = 24575, upload-time = "2025-10-11T01:07:44.582Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e2/23/c941a0d0353681ca138489983c4309e0f5095dfd902e1357004f2357ddf2/resolvelib-1.2.1-py3-none-any.whl", hash = "sha256:fb06b66c8da04172d9e72a21d7d06186d8919e32ae5ab5cdf5b9d920be805ac2", size = 18737, upload-time = "2025-10-11T01:07:43.081Z" },
+]
+
+[[package]]
+name = "tzdata"
+version = "2026.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7a/29/6a1391d31cd00ff9e927215a224a880e1e84e826b64ba80a499e51c074d8/tzdata-2026.6.tar.gz", hash = "sha256:85d2cd9c09f81f0bb29db27759fc83af4f1e620efb814f8c5bf8b4cc4feece6d", size = 201017, upload-time = "2026-10-28T09:57:09.137Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0a/66/9a06c2227fedfd4919f0eaaa8b94377d9730882a7e4f95823c9a331ab5e1/tzdata-2026.6-py2.py3-none-any.whl", hash = "sha256:0a10eec6e13ef16b627fabed9a5f2ba61a62b1c67f327305f4e7e412a70b4aec", size = 348210, upload-time = "2026-10-28T09:57:07.276Z" },
 ]

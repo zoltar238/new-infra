@@ -39,20 +39,44 @@
   ansible.builtin.debug:
     msg: "Public key for {{ inventory_hostname }}: {{ wg_conf_public_key.stdout }}"
 
+- name: Get key secrets
+  ansible.builtin.command:
+    cmd: bws secret list --server-url https://vault.bitwarden.eu
+  register: wg_keys_lookup
+  delegate_to: localhost
+  changed_when: false
+  become: false
+  run_once: true
+  no_log: true
+
+- name: Parse Bitwarden secrets list
+  ansible.builtin.set_fact:
+    wg_conf_peer_creds: "{{ wg_keys_lookup.stdout | from_json if (wg_keys_lookup.rc == 0 and wg_keys_lookup.stdout | length > 0) else [] }}"
+  no_log: true
+  run_once: true
+  become: false
+  delegate_to: localhost
+
 - name: Compute peer list
   ansible.builtin.set_fact:
-    wg_conf_peers: "{{ _conf_peers | from_json }}"
+    wg_conf_peers: >-
+      {{
+        (wg_conf_peers | default([])) + [
+          {
+            'user': user.name,
+            'priv_key': _priv,
+            'public_key': _priv | wg_public_key,
+            'psk': (wg_conf_peer_creds | selectattr('key', 'equalto', 'wg_psk_' ~ user.name) | map(attribute='value') | first | default(None)),
+            'allowed_ips': (wg_conf_ipv4_subnet | ansible.utils.ipmath(user_idx + 2)) ~ "/32"
+          }
+        ]
+      }}
+  loop: "{{ users }}"
+  loop_control:
+    loop_var: user
+    index_var: user_idx
   vars:
-    _conf_peers: >-
-      {%- set ns = namespace(peers=[]) -%}
-      {%- for user in users -%}
-      {%- set _ = ns.peers.append({
-        "user": user.name,
-        "public_key": user.vpn.pub_key,
-        "allowed_ips": (wg_conf_ipv4_subnet | ansible.utils.ipmath(loop.index + 1)) ~ "/32"
-      }) -%}
-      {%- endfor -%}
-      {{ ns.peers | to_json }}
+    _priv: "{{ wg_conf_peer_creds | selectattr('key', 'equalto', 'wg_priv_' ~ user.name) | map(attribute='value') | first | default('') }}"
 
 - name: Deploy WireGuard server configuration
   ansible.builtin.template:

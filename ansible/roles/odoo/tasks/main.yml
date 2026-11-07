@@ -1,0 +1,55 @@
+---
+- name: Create project map
+  set_fact:
+    odoo_installations: >-
+      {{
+        odoo_installations | default([]) + 
+      [{
+        'odoo_compose_project_name': item.project_name,
+        'odoo_dir': "/opt/odoo_" + item.project_name,
+        'repos': item.repos
+      }]
+      }}
+  loop: "{{odoo_hosts}}"
+
+- name: Create project dir
+  file:
+    path: "{{item.odoo_dir}}"
+    state: directory
+  loop: "{{odoo_installations}}"
+
+- name: Clone addons repo for each install
+  ansible.builtin.git:
+    repo: "{{ _prefix }}/{{ _repo }}"
+    dest: "{{ item.0.odoo_dir }}/{{ item.1.name }}"
+  loop: "{{ odoo_installations | subelements('repos') }}"
+  environment:
+    GIT_TERMINAL_PROMPT: 0
+  no_log: false
+  vars:
+    _prefix: "https://{{ odoo_gh_user }}:{{ odoo_gh_user_token }}@github.com"
+    _repo: "{{ item.1.url | regex_replace('^.*github\\.com/', '') }}"
+
+- name: Generate .env files
+  template:
+    src: .env.j2
+    dest: "{{item.odoo_dir}}/.env"
+  loop: "{{odoo_installations}}"
+
+- name: Create config dir
+  file:
+    path: "{{item.odoo_dir}}/config"
+    state: directory
+  loop: "{{odoo_installations}}"
+
+- name: Generate odoo.conf files
+  template:
+    src: odoo.conf.j2
+    dest: "{{ item.odoo_dir }}/config/odoo.conf"
+  loop: "{{ odoo_installations }}"
+
+- name: Generate compose files
+  template:
+    src: compose.yaml.j2
+    dest: "{{item.odoo_dir}}/compose.yaml"
+  loop: "{{odoo_installations}}"

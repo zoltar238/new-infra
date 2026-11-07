@@ -1,5 +1,10 @@
 ansible_python_interpreter: /usr/bin/python3
+bws_auth:
+  api_url: "https://api.bitwarden.eu"
+  identity_url: "https://identity.bitwarden.eu"
+bws_project_id: d8334327-160f-41fe-84e8-b4fa00b65d67
 users:
-  - name: andrei
-    vpn:
-      pub_key: "1J2aUgGXCSsV7uwI39BDl0GrvLsKoIZm0oMPZU9CCW0="
+  - name: andrei-pc
+    groups:
+      - sudo
+    sshKey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ70nKbc3KOv7ooSo8AZLVpWSuid2e8qlKhKjdoDX+hm"

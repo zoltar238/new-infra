@@ -1,37 +1,37 @@
 ---
 - name: Get secrets
   ansible.builtin.command:
-    cmd: bws secret list
+    cmd: bws secret list --server-url https://vault.bitwarden.eu
   register: wg_keys_lookup
   delegate_to: localhost
-  failed_when: false
   changed_when: false
   become: false
+  run_once: true
   no_log: true
 
 - name: Parse Bitwarden secrets list
   ansible.builtin.set_fact:
     _wg_keys_bws_secrets: "{{ wg_keys_lookup.stdout | from_json if (wg_keys_lookup.rc == 0 and wg_keys_lookup.stdout | length > 0) else [] }}"
   no_log: true
+  run_once: true
   become: false
   delegate_to: localhost
 
 - name: Build user WireGuard secrets mapping
   ansible.builtin.set_fact:
-    wg_keys_user_status: "{{ _raw_wg_list | from_json }}"
-  vars:
-    _raw_wg_list: >-
-      [
-        {% for user in ssh_users %}
-          {% set psk_matched = _wg_keys_bws_secrets | selectattr('key', 'equalto', 'wg_psk_' ~ user.name) | list %}
-          {% set priv_matched = _wg_keys_bws_secrets | selectattr('key', 'equalto', 'wg_priv_' ~ user.name) | list %}
+    wg_keys_user_status: >-
+      {{
+        (wg_keys_user_status | default([])) + [
           {
-            "user": "{{ user.name }}",
-            "psk_id": {{ ('"' ~ psk_matched[0].id ~ '"') if psk_matched | length > 0 else 'null' }},
-            "priv_id": {{ ('"' ~ priv_matched[0].id ~ '"') if priv_matched | length > 0 else 'null' }}
-          }{{ ',' if not loop.last else '' }}
-        {% endfor %}
-      ]
+            'user': item.name,
+            'psk_id': (_wg_keys_bws_secrets | selectattr('key', 'equalto', 'wg_psk_' ~ item.name) | map(attribute='id') | first | default(None)),
+            'priv_id': (_wg_keys_bws_secrets | selectattr('key', 'equalto', 'wg_priv_' ~ item.name) | map(attribute='id') | first | default(None))
+          }
+        ]
+      }}
+  loop: "{{ users }}"
+  loop_control:
+    label: "{{ item.name }}"
   delegate_to: localhost
   run_once: true
   become: false
@@ -41,6 +41,7 @@
     msg:
       - "{{ wg_keys_user_status }}"
   become: false
+  run_once: true
 
 # Private keys
 - name: Generate WireGuard private key for missing users
@@ -53,19 +54,25 @@
   delegate_to: localhost
   become: false
   no_log: true
+  run_once: true
 
 - name: Create missing Private Keys in Bitwarden
   ansible.builtin.command:
-    cmd: >
-      bws secret create
-      "wg_priv_{{ item.item.user }}"
-      "{{ item.stdout }}"
-      "{{ bws_project_id }}"
+    argv:
+      - bws
+      - secret
+      - create
+      - --server-url
+      - https://vault.bitwarden.eu
+      - "wg_priv_{{ item.item.user }}"
+      - "{{ item.stdout }}"
+      - "{{ bws_project_id }}"
   changed_when: true
   loop: "{{ _wg_keys_new_priv.results }}"
   when: item.skipped is not defined or not item.skipped
   delegate_to: localhost
   become: false
+  run_once: true
   no_log: true
 
 # PSKs
@@ -82,11 +89,15 @@
 
 - name: Create missing PSKs in Bitwarden
   ansible.builtin.command:
-    cmd: >
-      bws secret create
-      "wg_psk_{{ item.item.user }}"
-      "{{ item.stdout }}"
-      "{{ bws_project_id }}"
+    argv:
+      - bws
+      - secret
+      - create
+      - --server-url
+      - https://vault.bitwarden.eu
+      - "wg_psk_{{ item.item.user }}"
+      - "{{ item.stdout }}"
+      - "{{ bws_project_id }}"
   changed_when: true
   loop: "{{ _wg_keys_new_psk.results }}"
   when: item.skipped is not defined or not item.skipped

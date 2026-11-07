@@ -1,5 +1,5 @@
 ---
-wg_conf_priv_key: "{{ lookup('ansible.builtin.env', 'WG_PRIV_KEY') | trim }}"
+wg_conf_priv_key: "{{ lookup('bitwarden.secrets.lookup', 'c077b1ba-3c3e-4c5e-8091-b4fb00da0dbf', **bws_auth) }}"
 wg_conf_port: 49911
 # Tunnel networks
 wg_conf_ipv4_subnet: "192.168.24.0/24"

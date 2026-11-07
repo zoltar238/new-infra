@@ -1,0 +1,11 @@
+- name: Install and configure odoos
+  hosts: odoo
+  become: true
+  gather_facts: false
+  pre_tasks:
+    - name: Get distribution facts
+      ansible.builtin.setup:
+        filter: ansible_distribution*
+  roles:
+    # - docker
+    - odoo

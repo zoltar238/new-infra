@@ -1,4 +1,23 @@
-# inventory.yml
+odoo:
+  hosts:
+    169.58.77.251:
+      ansible_user: root
+      ansible_ssh_private_key_file: ~/.ssh/test_key
+      odoo_hosts:
+        - project_name: ricardo
+          workers: 2
+          repos:
+            - name: maywi-modules
+              url: https://github.com/Stratekia/maywi-modules.git
+            - name: enterprise
+              url: https://github.com/Stratekia/odoo-enterprise-modules.git
+        - project_name: manolo
+          workers: 2
+          repos:
+            - name: maywi-modules
+              url: https://github.com/Stratekia/maywi-modules.git
+            - name: enterprise
+              url: https://github.com/Stratekia/odoo-enterprise-modules.git
 vpn:
   hosts:
     128.140.110.47:
