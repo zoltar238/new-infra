@@ -32,11 +32,31 @@ services:
         reservations:
           memory: 300M
           cpus: '0.100'
+{% if item.domain %}
+      labels:
+        traefik.enable: "true"
+        traefik.swarm.network: {{ traefik_swarm_network | to_json }}
+        traefik.http.routers.{{ item.project_name }}-web.rule: {{ ('Host(`' ~ item.domain ~ '`)') | to_json }}
+        traefik.http.routers.{{ item.project_name }}-web.entrypoints: websecure
+        traefik.http.routers.{{ item.project_name }}-web.service: {{ item.project_name }}-web
+        traefik.http.services.{{ item.project_name }}-web.loadbalancer.server.port: "8069"
+        traefik.http.routers.{{ item.project_name }}-ws.rule: {{ ('Host(`' ~ item.domain ~ '`) && (Path(`/websocket`) || PathPrefix(`/websocket/`))') | to_json }}
+        traefik.http.routers.{{ item.project_name }}-ws.entrypoints: websecure
+        traefik.http.routers.{{ item.project_name }}-ws.priority: "100"
+        traefik.http.routers.{{ item.project_name }}-ws.service: {{ item.project_name }}-ws
+        traefik.http.services.{{ item.project_name }}-ws.loadbalancer.server.port: "8072"
+{% endif %}
+{% if item.domain %}
+    networks:
+      - default
+      - proxy
+{% else %}
     ports:
       - target: 8069
         published: ${ODOO_EXPOSED_PORT:-8069}
         protocol: tcp
         mode: ingress
+{% endif %}
     volumes:
       - {{item.odoo_dir}}/config:/etc/odoo
       - odoo_data:/var/lib/odoo
@@ -62,4 +82,11 @@ volumes:
   db_data:
     name: db_data
     external: ${VOLUME_EXTERNAL:-false}
+{% if item.domain %}
+networks:
+  default: {}
+  proxy:
+    name: {{ traefik_swarm_network | to_json }}
+    external: true
+{% endif %}
 

@@ -1,0 +1,10 @@
+services:
+  odoo:
+    networks:
+      - default
+      - odoo_proxy
+
+networks:
+  default: {}
+  odoo_proxy:
+    external: true

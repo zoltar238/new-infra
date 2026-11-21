@@ -1,0 +1,2 @@
+---
+traefik_swarm_network: odoo_proxy

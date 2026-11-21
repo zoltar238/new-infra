@@ -1,0 +1,10 @@
+---
+caddy_dir: /opt/caddy
+caddy_image: caddy:2
+caddy_swarm_manager: "{{ groups['swarm_managers'][0] }}"
+caddy_swarm_network: ""
+caddyfile_content: |
+  :80 {
+      root * /srv
+      file_server
+  }

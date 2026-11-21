@@ -1,0 +1,41 @@
+version: "3.8"
+services:
+  traefik:
+    image: {{ traefik_image | to_json }}
+    command:
+      - --providers.swarm.endpoint=unix:///var/run/docker.sock
+      - --providers.swarm.exposedbydefault=false
+      - --providers.swarm.network={{ traefik_swarm_network }}
+      - --providers.file.filename=/etc/traefik/tls.yaml
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.websecure.http.tls=true
+      - --ping=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - proxy
+    healthcheck:
+      test: [CMD, traefik, healthcheck, --ping]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    deploy:
+      replicas: {{ traefik_replicas }}
+      placement:
+        constraints:
+          - node.role == manager
+        max_replicas_per_node: 1
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+        monitor: 45s
+
+networks:
+  proxy:
+    name: {{ traefik_swarm_network | to_json }}
+    external: true
+

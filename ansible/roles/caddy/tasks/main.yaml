@@ -1,1 +1,51 @@
-- name:
+---
+- name: Create Caddy directories on the proxy node
+  ansible.builtin.file:
+    path: "{{ caddy_dir }}{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - ""
+    - /conf
+    - /site
+
+- name: Write the Caddyfile
+  ansible.builtin.copy:
+    content: "{{ caddyfile_content }}"
+    dest: "{{ caddy_dir }}/conf/Caddyfile"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Deploy Caddy from the Swarm manager
+  delegate_to: "{{ caddy_swarm_manager }}"
+  block:
+    - name: Install Ansible Docker stack dependencies
+      ansible.builtin.apt:
+        name:
+          - python3-jsondiff
+          - python3-yaml
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Ensure the shared proxy network exists
+      community.docker.docker_network:
+        name: "{{ caddy_swarm_network }}"
+        driver: overlay
+        scope: swarm
+        appends: true
+        state: present
+      when: caddy_swarm_network | length > 0
+
+    - name: Apply the Caddy stack
+      community.docker.docker_stack:
+        name: caddy
+        state: present
+        detach: false
+        resolve_image: changed
+        compose:
+          - "{{ lookup('ansible.builtin.template', 'compose.yaml.j2') | from_yaml }}"
+      timeout: 180

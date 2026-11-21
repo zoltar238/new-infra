@@ -13,27 +13,31 @@ swarm:
           hosts:
             10.0.1.40:
               ansible_user: root
-        10.0.1.30:
-          ansible_user: root
-          odoo_hosts:
-            - project_name: ricardo
-              workers: 2
-              max_memory: 4G
-              max_cpus: 2
-              repos:
-                - name: maywi-modules
-                  url: https://github.com/Stratekia/maywi-modules.git
-                - name: enterprise
-                  url: https://github.com/Stratekia/odoo-enterprise-modules.git
-        10.0.1.31:
-          ansible_user: root
-          odoo_hosts:
-            - project_name: manolo
-              workers: 2
-              max_memory: 4G
-              max_cpus: 2
-              repos:
-                - name: maywi-modules
-                  url: https://github.com/Stratekia/maywi-modules.git
-                - name: enterprise
-                  url: https://github.com/Stratekia/odoo-enterprise-modules.git
+        odoo:
+          hosts:
+            10.0.1.30:
+              ansible_user: root
+              odoo_hosts:
+                - project_name: ricardo
+                  # domain: ricardo.midominio.com
+                  workers: 2
+                  max_memory: 4G
+                  max_cpus: 2
+                  repos:
+                    - name: maywi-modules
+                      url: https://github.com/Stratekia/maywi-modules.git
+                    - name: enterprise
+                      url: https://github.com/Stratekia/odoo-enterprise-modules.git
+            10.0.1.31:
+              ansible_user: root
+              odoo_hosts:
+                - project_name: manolo
+                  # domain: manolo.midominio.com
+                  workers: 2
+                  max_memory: 4G
+                  max_cpus: 2
+                  repos:
+                    - name: maywi-modules
+                      url: https://github.com/Stratekia/maywi-modules.git
+                    - name: enterprise
+                      url: https://github.com/Stratekia/odoo-enterprise-modules.git

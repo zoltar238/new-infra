@@ -1,0 +1,8 @@
+---
+caddy_swarm_network: odoo_proxy
+caddyfile_content: |
+  ricardo.midominio.com {
+      @websocket path /websocket /websocket/*
+      reverse_proxy @websocket ricardo_odoo:8072
+      reverse_proxy ricardo_odoo:8069
+  }

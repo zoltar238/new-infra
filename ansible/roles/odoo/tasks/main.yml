@@ -6,6 +6,8 @@
         odoo_installations | default([]) + 
       [{
         'odoo_dir': "/opt/odoo_" + item.project_name,
+        'project_name': item.project_name,
+        'domain': item.domain | default(''),
         'max_memory': item.max_memory,
         'max_cpus': item.max_cpus,
         'swarm_manager_odoo_dir': '/opt/' ~ ansible_facts['hostname'],
@@ -44,6 +46,7 @@
     src: .env.j2
     dest: "{{item.odoo_dir}}/.env"
   loop: "{{odoo_installations}}"
+  when: lookup('ansible.builtin.fileglob', role_path ~ '/templates/.env.j2') | length > 0
 
 - name: Create config dir
   file:

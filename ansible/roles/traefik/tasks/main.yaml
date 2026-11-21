@@ -1,0 +1,135 @@
+---
+- name: Validate the Odoo hostnames and router names
+  ansible.builtin.assert:
+    that:
+      - item.domain is match('^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?[.])+[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$')
+      - item.project_name is match('^[a-zA-Z0-9_-]+$')
+  loop: "{{ traefik_odoo_sites }}"
+  loop_control:
+    label: "{{ item.project_name }}"
+
+- name: Validate unique domains and router names
+  ansible.builtin.assert:
+    that:
+      - traefik_odoo_sites | map(attribute='domain') | unique | length == traefik_odoo_sites | length
+      - traefik_odoo_sites | map(attribute='project_name') | unique | length == traefik_odoo_sites | length
+      - traefik_odoo_sites | length == 0 or traefik_acme_email | length > 0
+    fail_msg: Configure unique domains and project names, and set TRAEFIK_ACME_EMAIL for ACME.
+
+- name: Find eligible Traefik nodes
+  community.docker.docker_swarm_info:
+    nodes: true
+    nodes_filters:
+      role: manager
+  register: traefik_swarm_nodes
+
+- name: Require enough active managers for the requested replicas
+  ansible.builtin.assert:
+    that:
+      - traefik_replicas | int > 0
+      - >-
+        traefik_swarm_nodes.nodes
+        | selectattr('Status', 'equalto', 'ready')
+        | selectattr('Availability', 'equalto', 'active')
+        | list | length >= traefik_replicas | int
+    fail_msg: Join enough active manager nodes before increasing traefik_replicas.
+
+- name: Install dependencies on the certificate manager
+  ansible.builtin.apt:
+    name:
+      - certbot
+      - python3-certbot-dns-cloudflare
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Create the Traefik deployment directory
+  ansible.builtin.file:
+    path: /etc/traefik-swarm
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Store the Cloudflare token on the certificate manager
+  ansible.builtin.copy:
+    content: "dns_cloudflare_api_token = {{ traefik_cloudflare_token }}\n"
+    dest: /etc/traefik-swarm/cloudflare.ini
+    owner: root
+    group: root
+    mode: "0600"
+  when: traefik_cloudflare_token | length > 0
+  no_log: true
+
+- name: Check for the persisted Cloudflare credentials
+  ansible.builtin.stat:
+    path: /etc/traefik-swarm/cloudflare.ini
+  register: traefik_cloudflare_credentials
+  when: traefik_odoo_sites | length > 0
+
+- name: Require the Cloudflare credentials for configured domains
+  ansible.builtin.assert:
+    that:
+      - traefik_cloudflare_credentials.stat.exists or (ansible_check_mode and traefik_cloudflare_token | length > 0)
+    fail_msg: Set TRAEFIK_CLOUDFLARE_API_TOKEN on the first run with Odoo domains.
+  when: traefik_odoo_sites | length > 0
+
+- name: Ensure the proxy overlay network exists
+  community.docker.docker_network:
+    name: "{{ traefik_swarm_network }}"
+    driver: overlay
+    scope: swarm
+    appends: true
+    state: present
+
+- name: Render the Traefik stack
+  ansible.builtin.template:
+    src: compose.yaml.j2
+    dest: /etc/traefik-swarm/compose.yaml
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Configure the certificate issuer
+  ansible.builtin.copy:
+    content: "{{ {'email': traefik_acme_email, 'domains': traefik_odoo_sites | map(attribute='domain') | sort} | to_nice_json }}"
+    dest: /etc/traefik-swarm/acme.json
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Install the Traefik deployment and renewal script
+  ansible.builtin.copy:
+    src: apply.py
+    dest: /etc/traefik-swarm/apply.py
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Install the deployment and renewal units
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - traefik-swarm.service
+    - traefik-swarm.timer
+
+- name: Deploy Traefik and synchronize the certificates
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/python3
+      - /etc/traefik-swarm/apply.py
+      - --migrate-caddy
+  register: traefik_deploy
+  changed_when: "'Traefik service updated' in traefik_deploy.stdout_lines"
+
+- name: Enable daily certificate renewal checks
+  ansible.builtin.systemd_service:
+    name: traefik-swarm.timer
+    daemon_reload: true
+    enabled: true
+    state: started
+

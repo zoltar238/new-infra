@@ -1,0 +1,11 @@
+---
+traefik_image: traefik:v3.7
+traefik_replicas: "{{ [groups['swarm_managers'] | length, 2] | min }}"
+traefik_acme_email: "{{ lookup('ansible.builtin.env', 'TRAEFIK_ACME_EMAIL') }}"
+traefik_cloudflare_token: "{{ lookup('ansible.builtin.env', 'TRAEFIK_CLOUDFLARE_API_TOKEN') }}"
+traefik_odoo_sites: >-
+  {{
+    groups.get('odoo', []) | map('extract', hostvars, 'odoo_hosts') | flatten
+    | selectattr('domain', 'defined') | selectattr('domain') | list
+  }}
+
