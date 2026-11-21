@@ -13,7 +13,7 @@
 
 - name: Fetch secrets from Bitwarden
   ansible.builtin.command:
-    cmd: bws secret list
+    cmd: bws secret list --server-url https://vault.bitwarden.eu
   register: _wg_clients_bws_secrets_raw
   delegate_to: localhost
   run_once: true
@@ -25,25 +25,29 @@
   ansible.builtin.set_fact:
     _wg_clients_bws_secrets: "{{ _wg_clients_bws_secrets_raw.stdout | from_json }}"
   run_once: true
+  no_log: true
 
-- name: Build peer credentials list if not defined
+- name: Build client peer credentials from Bitwarden secrets
   ansible.builtin.set_fact:
-    wg_clients_peer_creds: "{{ wg_conf_peer_creds if wg_conf_peer_creds is defined else (_raw_peer_creds | from_json) }}"
+    wg_clients_peer_creds: "{{ _raw_peer_creds | from_json }}"
   vars:
     _raw_peer_creds: >-
-      [
-        {% for user in ssh_users %}
-          {% set priv_item = _wg_clients_bws_secrets | selectattr('key', 'equalto', 'wg_priv_' ~ user.name) | list | first %}
-          {% set psk_item  = _wg_clients_bws_secrets | selectattr('key', 'equalto', 'wg_psk_'  ~ user.name) | list | first %}
-          {
-            "user": "{{ user.name }}",
-            "priv_key": "{{ priv_item.value }}",
-            "psk": "{{ psk_item.value }}",
-            "ipv4": "{{ wg_clients_ipv4_subnet | ansible.utils.ipmath(loop.index + 1) }}/32",
-            "ipv6": "{{ wg_clients_ipv6_subnet | ansible.utils.ipmath(loop.index + 1) }}/128"
-          }{{ ',' if not loop.last else '' }}
-        {% endfor %}
-      ]
+      {% set ns = namespace(peers=[]) %}
+      {% for user in users %}
+        {% set priv_item = _wg_clients_bws_secrets | selectattr('key', 'equalto', 'wg_priv_' ~ user.name) | list | first %}
+        {% set psk_item = _wg_clients_bws_secrets | selectattr('key', 'equalto', 'wg_psk_' ~ user.name) | list | first %}
+        {% set peer = {
+          'user': user.name,
+          'priv_key': priv_item.value,
+          'psk': psk_item.value,
+          'ipv4': (wg_clients_ipv4_subnet | default(wg_conf_ipv4_subnet) | ansible.utils.ipmath(loop.index + 1)) ~ '/32'
+        } %}
+        {% if wg_clients_ipv6_subnet is defined %}
+          {% set peer = peer | combine({'ipv6': (wg_clients_ipv6_subnet | ansible.utils.ipmath(loop.index + 1)) ~ '/128'}) %}
+        {% endif %}
+        {% set ns.peers = ns.peers + [peer] %}
+      {% endfor %}
+      {{ ns.peers | to_json }}
   run_once: true
   no_log: true
 
@@ -78,6 +82,8 @@
       - "{{ item.secret_key }}"
       - "{{ item.conf_content }}"
       - "{{ bws_project_id }}"
+      - --server-url
+      - https://vault.bitwarden.eu
   loop: "{{ wg_clients_profiles }}"
   when: item.secret_id is none
   delegate_to: localhost
@@ -95,6 +101,8 @@
       - --value
       - "{{ item.conf_content }}"
       - "{{ item.secret_id }}"
+      - --server-url
+      - https://vault.bitwarden.eu
   loop: "{{ wg_clients_profiles }}"
   when: item.secret_id is not none and item.needs_update
   delegate_to: localhost
@@ -109,4 +117,6 @@
       WireGuard profile for {{ item.user }} saved in Bitwarden as '{{ item.secret_key }}'
       (action: {{ 'created' if item.secret_id is none else ('updated' if item.needs_update else 'unchanged') }})
   loop: "{{ wg_clients_profiles }}"
+  loop_control:
+    label: "{{ item.user }}"
   run_once: true

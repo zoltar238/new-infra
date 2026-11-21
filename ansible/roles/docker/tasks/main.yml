@@ -14,10 +14,7 @@
       - ca-certificates
       - curl
       - gnupg
-      - software-properties-common
-      - python3-pip
-      - python3-venv
-      - python3-setuptools
+      - python3-debian
     state: present
     update_cache: true
 

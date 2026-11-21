@@ -24,6 +24,9 @@ PostDown = iptables -t nat -D POSTROUTING -s {{ wg_conf_ipv4_subnet }} ! -o {{ w
 # {{ peer.user }}
 [Peer]
 PublicKey = {{ peer.public_key }}
+{% if peer.psk is defined and peer.psk %}
+PresharedKey = {{ peer.psk }}
+{% endif %}
 AllowedIPs = {{ peer.allowed_ips }}
 
 {% endfor %}

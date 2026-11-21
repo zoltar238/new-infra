@@ -1,7 +1,12 @@
 services:
   db:
     image: pgvector/pgvector:pg18-trixie
-    container_name: ${COMPOSE_PROJECT_NAME}_db
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == {{ ansible_facts['hostname'] }}
+    container_name: db
     environment:
       - POSTGRES_DB=postgres
       - POSTGRES_PASSWORD=odoo
@@ -9,25 +14,38 @@ services:
       - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
       - db_data:/var/lib/postgresql/data/pgdata
-      - ./config/postgresql.conf:/etc/postgresql/postgresql.conf
+      - {{item.odoo_dir}}/config/postgresql.conf:/etc/postgresql/postgresql.conf
     restart: unless-stopped
 
   odoo:
-    container_name: ${COMPOSE_PROJECT_NAME}_odoo
+    container_name: odoo
     image: odoo:${ODOO_VERSION:-19}
-    mem_limit: ${ODOO_MEM_LIMIT:-2g}
-    cpus: ${ODOO_CPUS:-1.0}
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == {{ ansible_facts['hostname'] }}
+      resources:
+        limits:
+          memory: {{ item.max_memory }}
+          cpus: '{{ item.max_cpus }}'
+        reservations:
+          memory: 300M
+          cpus: '0.100'
     ports:
-      - "8069:${ODOO_EXPOSED_PORT:-8069}"
+      - target: 8069
+        published: ${ODOO_EXPOSED_PORT:-8069}
+        protocol: tcp
+        mode: ingress
     volumes:
-      - ./config:/etc/odoo
+      - {{item.odoo_dir}}/config:/etc/odoo
       - odoo_data:/var/lib/odoo
 {% for repo in item.repos %}
-      - ./{{ repo.name }}:/mnt/{{ repo.name }}
+      - {{ item.odoo_dir }}/{{ repo.name }}:/mnt/{{ repo.name }}
 {% endfor %}
     environment:
       # Postgres container name
-      - HOST=${COMPOSE_PROJECT_NAME}_db
+      - HOST=db
       # Postgres user
       - USER=odoo
       # Postgres password
@@ -39,9 +57,9 @@ services:
 
 volumes:
   odoo_data:
-    name: ${COMPOSE_PROJECT_NAME}_odoo_data
+    name: odoo_data
     external: ${VOLUME_EXTERNAL:-false}
   db_data:
-    name: ${COMPOSE_PROJECT_NAME}_db_data
+    name: db_data
     external: ${VOLUME_EXTERNAL:-false}
 

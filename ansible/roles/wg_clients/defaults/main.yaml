@@ -1,6 +1,7 @@
 ---
-wg_clients_endpoint: "5.39.117.188:49911"
-wg_clients_allowed_ips: "192.168.24.0/22"
+wg_clients_endpoint: "128.140.110.47:49911"
+# Private network configured in tofu/test.tfvars.
+wg_clients_allowed_ips: "10.0.1.0/24"
 # Route all traffic through the VPN (0.0.0.0/0, ::/0) or only the VPN subnets
 wg_clients_route_all_traffic: false
 # Prefix used when saving client configs in Bitwarden Secrets Manager

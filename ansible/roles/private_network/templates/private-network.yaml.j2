@@ -1,0 +1,14 @@
+# Managed by Ansible. Extends the existing cloud-init interface configuration.
+network:
+  version: 2
+  ethernets:
+    {{ private_network_interface }}:
+      dhcp4-overrides:
+        use-dns: false
+      nameservers:
+        addresses: {{ private_network_dns | to_json }}
+      routes:
+        - to: default
+          via: {{ private_network_gateway }}
+          on-link: true
+          metric: 200

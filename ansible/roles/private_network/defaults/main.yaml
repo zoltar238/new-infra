@@ -1,0 +1,7 @@
+---
+private_network_interface: enp7s0
+# Hetzner network gateway; the Cloud route forwards Internet traffic to 10.0.1.10.
+private_network_gateway: "10.0.1.1"
+private_network_dns:
+  - "1.1.1.1"
+  - "9.9.9.9"

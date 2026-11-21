@@ -1,0 +1,12 @@
+---
+- name: Configure Internet access through the VPN server
+  hosts: vpn
+  become: true
+  roles:
+    - private_gateway
+
+- name: Configure private servers routing and DNS
+  hosts: swarm_managers:swarm_workers
+  become: true
+  roles:
+    - private_network

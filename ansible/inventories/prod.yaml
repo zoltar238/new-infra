@@ -1,25 +1,39 @@
-odoo:
-  hosts:
-    169.58.77.251:
-      ansible_user: root
-      ansible_ssh_private_key_file: ~/.ssh/test_key
-      odoo_hosts:
-        - project_name: ricardo
-          workers: 2
-          repos:
-            - name: maywi-modules
-              url: https://github.com/Stratekia/maywi-modules.git
-            - name: enterprise
-              url: https://github.com/Stratekia/odoo-enterprise-modules.git
-        - project_name: manolo
-          workers: 2
-          repos:
-            - name: maywi-modules
-              url: https://github.com/Stratekia/maywi-modules.git
-            - name: enterprise
-              url: https://github.com/Stratekia/odoo-enterprise-modules.git
 vpn:
   hosts:
     128.140.110.47:
-      ansible_user: root
-      ansible_ssh_private_key_file: ~/.ssh/test_key
+swarm:
+  children:
+    swarm_managers:
+      hosts:
+        10.0.1.20:
+          ansible_user: root
+    swarm_workers:
+      children:
+        proxy:
+          hosts:
+            10.0.1.40:
+              ansible_user: root
+        10.0.1.30:
+          ansible_user: root
+          odoo_hosts:
+            - project_name: ricardo
+              workers: 2
+              max_memory: 4G
+              max_cpus: 2
+              repos:
+                - name: maywi-modules
+                  url: https://github.com/Stratekia/maywi-modules.git
+                - name: enterprise
+                  url: https://github.com/Stratekia/odoo-enterprise-modules.git
+        10.0.1.31:
+          ansible_user: root
+          odoo_hosts:
+            - project_name: manolo
+              workers: 2
+              max_memory: 4G
+              max_cpus: 2
+              repos:
+                - name: maywi-modules
+                  url: https://github.com/Stratekia/maywi-modules.git
+                - name: enterprise
+                  url: https://github.com/Stratekia/odoo-enterprise-modules.git

@@ -2,7 +2,7 @@
   hosts: vpn
   become: true
   roles:
-    # - wg_install
-    # - wg_keys
+    - wg_install
+    - wg_keys
     - wg_conf
-    # - wg_clients
+    - wg_clients

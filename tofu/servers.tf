@@ -28,7 +28,6 @@ resource "hcloud_server" "vpn_node" {
 
   delete_protection  = true
   rebuild_protection = true
-  // firewall_ids       = [hcloud_firewall.firewall.id]
 
   ssh_keys = values(hcloud_ssh_key.main)[*].id
 
@@ -40,7 +39,7 @@ resource "hcloud_server" "vpn_node" {
 
   network {
     subnet_id = hcloud_network_subnet.odoo_priv_subnet.id
-    ip        = cidrhost(hcloud_network_subnet.odoo_priv_subnet.ip_range, 10)
+    ip        = var.vpn_node.private_ipv4
   }
 
   lifecycle {
@@ -61,7 +60,6 @@ resource "hcloud_server" "odoo_nodes" {
 
   delete_protection  = true
   rebuild_protection = true
-  firewall_ids       = [hcloud_firewall.firewall.id]
 
   ssh_keys = values(hcloud_ssh_key.main)[*].id
 
@@ -73,7 +71,7 @@ resource "hcloud_server" "odoo_nodes" {
 
   network {
     subnet_id = hcloud_network_subnet.odoo_priv_subnet.id
-    ip        = cidrhost(hcloud_network_subnet.odoo_priv_subnet.ip_range, index(keys(var.odoo_nodes), each.key) + 20)
+    ip        = each.value.private_ipv4
   }
 
   lifecycle {
@@ -83,3 +81,63 @@ resource "hcloud_server" "odoo_nodes" {
     ]
   }
 }
+
+resource "hcloud_server" "proxy_nodes" {
+  for_each    = var.proxy_nodes
+  name        = each.key
+  image       = each.value.image
+  server_type = each.value.server_type
+  location    = each.value.location
+  labels      = merge(each.value.labels, { "environment" = var.environment })
+
+  delete_protection  = true
+  rebuild_protection = true
+
+  ssh_keys = values(hcloud_ssh_key.main)[*].id
+
+  public_net {
+    ipv4_enabled = each.value.ipv4_enabled
+    ipv6_enabled = each.value.ipv6_enabled
+  }
+
+  network {
+    subnet_id = hcloud_network_subnet.odoo_priv_subnet.id
+    ip        = each.value.private_ipv4
+  }
+
+  lifecycle {
+    ignore_changes = [ssh_keys]
+  }
+}
+
+resource "hcloud_server" "swarm_manager_nodes" {
+  for_each    = var.swarm_manager_nodes
+  name        = each.key
+  image       = each.value.image
+  server_type = each.value.server_type
+  location    = each.value.location
+  labels      = each.value.labels
+
+  delete_protection  = true
+  rebuild_protection = true
+
+  ssh_keys = values(hcloud_ssh_key.main)[*].id
+
+  public_net {
+    ipv4_enabled = each.value.ipv4_enabled
+    ipv6_enabled = each.value.ipv6_enabled
+  }
+
+  network {
+    subnet_id = hcloud_network_subnet.odoo_priv_subnet.id
+    ip        = each.value.private_ipv4
+  }
+
+  lifecycle {
+    ignore_changes = [
+      labels,
+      ssh_keys
+    ]
+  }
+}
+

@@ -1,0 +1,2 @@
+---
+swarm_workers_manager: "{{ groups['swarm_managers'][0] }}"

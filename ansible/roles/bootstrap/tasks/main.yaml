@@ -1,0 +1,27 @@
+- name: Ensure sudo is installed
+  ansible.builtin.apt:
+    name: sudo
+    state: present
+    update_cache: true
+
+- name: Create the ansible user
+  ansible.builtin.user:
+    name: ansible
+    shell: /bin/bash
+    create_home: true
+
+- name: Install the Ansible public key
+  ansible.posix.authorized_key:
+    user: ansible
+    key: "{{ ansible_key }}"
+    state: present
+    exclusive: true
+
+- name: Allow passwordless sudo for ansible
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/ansible
+    content: "ansible ALL=(ALL) NOPASSWD:ALL\n"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: /usr/sbin/visudo -cf %s

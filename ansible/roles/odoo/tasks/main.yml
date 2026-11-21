@@ -5,12 +5,21 @@
       {{
         odoo_installations | default([]) + 
       [{
-        'odoo_compose_project_name': item.project_name,
         'odoo_dir': "/opt/odoo_" + item.project_name,
+        'max_memory': item.max_memory,
+        'max_cpus': item.max_cpus,
+        'swarm_manager_odoo_dir': '/opt/' ~ ansible_facts['hostname'],
         'repos': item.repos
       }]
       }}
   loop: "{{odoo_hosts}}"
+
+- name: Create swarm manager project dir
+  file:
+    path: "{{ item.swarm_manager_odoo_dir }}"
+    state: directory
+  loop: "{{odoo_installations}}"
+  delegate_to: "{{ groups['swarm_managers'][0] }}"
 
 - name: Create project dir
   file:
@@ -48,8 +57,15 @@
     dest: "{{ item.odoo_dir }}/config/odoo.conf"
   loop: "{{ odoo_installations }}"
 
+- name: Generate postgresql.conf files
+  template:
+    src: postgresql.conf.j2
+    dest: "{{ item.odoo_dir }}/config/postgresql.conf"
+  loop: "{{ odoo_installations }}"
+
 - name: Generate compose files
   template:
     src: compose.yaml.j2
-    dest: "{{item.odoo_dir}}/compose.yaml"
+    dest: "{{ item.swarm_manager_odoo_dir }}/compose.yaml"
   loop: "{{odoo_installations}}"
+  delegate_to: "{{ groups['swarm_managers'][0] }}"

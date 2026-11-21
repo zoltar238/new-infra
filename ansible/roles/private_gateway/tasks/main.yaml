@@ -1,0 +1,56 @@
+---
+- name: Install gateway networking dependencies
+  ansible.builtin.apt:
+    name: iptables
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Enable persistent IPv4 forwarding
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_file: /etc/sysctl.d/99-private-gateway.conf
+    sysctl_set: true
+    reload: true
+
+- name: Install private network NAT rules script
+  ansible.builtin.template:
+    src: private-network-nat.sh.j2
+    dest: /usr/local/sbin/private-network-nat
+    owner: root
+    group: root
+    mode: "0700"
+    validate: /bin/sh -n %s
+  notify: Apply private network NAT rules
+
+- name: Install private network NAT service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/private-network-nat.service
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Internet NAT for the private network
+      Wants=network-online.target
+      After=network-online.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/sbin/private-network-nat
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
+  notify: Apply private network NAT rules
+
+- name: Enable private network NAT at boot
+  ansible.builtin.systemd_service:
+    name: private-network-nat
+    daemon_reload: true
+    enabled: true
+    state: started
+
+- name: Apply pending gateway changes
+  ansible.builtin.meta: flush_handlers

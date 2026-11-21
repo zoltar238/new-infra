@@ -1,0 +1,16 @@
+---
+- name: Validate private network configuration
+  ansible.builtin.command: netplan generate
+  changed_when: false
+  listen: Apply private network configuration
+
+- name: Apply private network configuration
+  ansible.builtin.command: netplan apply
+  async: 45
+  poll: 0
+
+- name: Wait for SSH after applying private network configuration
+  ansible.builtin.wait_for_connection:
+    delay: 3
+    timeout: 60
+  listen: Apply private network configuration

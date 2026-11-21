@@ -1,0 +1,12 @@
+#!/bin/sh
+# Managed by Ansible. Preserve the existing WireGuard and firewall rules.
+set -eu
+
+iptables -w -t nat -C POSTROUTING -s {{ private_gateway_subnet | quote }} -o {{ private_gateway_public_interface | quote }} -j MASQUERADE 2>/dev/null || \
+  iptables -w -t nat -A POSTROUTING -s {{ private_gateway_subnet | quote }} -o {{ private_gateway_public_interface | quote }} -j MASQUERADE
+
+iptables -w -C FORWARD -s {{ private_gateway_subnet | quote }} -o {{ private_gateway_public_interface | quote }} -j ACCEPT 2>/dev/null || \
+  iptables -w -I FORWARD -s {{ private_gateway_subnet | quote }} -o {{ private_gateway_public_interface | quote }} -j ACCEPT
+
+iptables -w -C FORWARD -d {{ private_gateway_subnet | quote }} -i {{ private_gateway_public_interface | quote }} -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || \
+  iptables -w -I FORWARD -d {{ private_gateway_subnet | quote }} -i {{ private_gateway_public_interface | quote }} -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT

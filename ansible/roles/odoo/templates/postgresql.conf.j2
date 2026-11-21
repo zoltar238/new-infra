@@ -1,0 +1,53 @@
+# ==========================================
+# CONNECTIONS
+# ==========================================
+
+listen_addresses = '*'
+port = 5432
+max_connections = 100
+
+# ==========================================
+# MEMORY
+# ==========================================
+
+shared_buffers = 256MB
+effective_cache_size = 1GB
+work_mem = 4MB
+maintenance_work_mem = 64MB
+
+# ==========================================
+# WAL
+# ==========================================
+
+wal_level = replica
+max_wal_size = 1GB
+min_wal_size = 80MB
+
+# ==========================================
+# CHECKPOINTS
+# ==========================================
+
+checkpoint_timeout = 5min
+checkpoint_completion_target = 0.9
+
+# ==========================================
+# LOGGING
+# ==========================================
+
+log_destination = 'stderr'
+logging_collector = off
+log_min_duration_statement = 1000
+
+# ==========================================
+# LOCALE / TIMEZONE
+# ==========================================
+
+timezone = 'UTC'
+
+# ==========================================
+# EXTENSIONS
+# ==========================================
+
+# pgvector no requiere shared_preload_libraries.
+# La extension se habilita en cada base de datos:
+# CREATE EXTENSION IF NOT EXISTS vector;

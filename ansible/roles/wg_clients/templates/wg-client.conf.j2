@@ -2,7 +2,7 @@
 # Managed by Ansible
 
 [Interface]
-Address = {{ item.ipv4 ~ ', ' ~ item.ipv6 if (item is defined and item.ipv4 is defined) else (wg_clients_address | default(wg_client_address)) }}
+Address = {{ item.ipv4 ~ (', ' ~ item.ipv6 if item.ipv6 is defined else '') if (item is defined and item.ipv4 is defined) else (wg_clients_address | default(wg_client_address)) }}
 PrivateKey = {{ item.priv_key if (item is defined and item.priv_key is defined) else (wg_clients_private_key | default(wg_client_private_key)) }}
 
 [Peer]

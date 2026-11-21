@@ -1,0 +1,14 @@
+---
+- name: Initialize swarm
+  hosts: swarm_managers[0]
+  become: true
+  roles:
+    - docker
+    - swarm_managers
+
+- name: Join swarm workers
+  hosts: swarm_workers
+  become: true
+  roles:
+    - docker
+    - swarm_workers

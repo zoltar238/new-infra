@@ -1,0 +1,24 @@
+---
+- name: Read existing Netplan interface configuration
+  ansible.builtin.command:
+    argv: [netplan, get, network.ethernets]
+  register: _private_network_netplan
+  changed_when: false
+
+- name: Check the private interface exists in Netplan
+  ansible.builtin.assert:
+    that:
+      - private_network_interface in (_private_network_netplan.stdout | from_yaml)
+    fail_msg: Set private_network_interface to the existing Netplan interface name.
+
+- name: Configure persistent private default route and DNS
+  ansible.builtin.template:
+    src: private-network.yaml.j2
+    dest: /etc/netplan/90-private-network.yaml
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Apply private network configuration
+
+- name: Apply pending network changes before package installation
+  ansible.builtin.meta: flush_handlers

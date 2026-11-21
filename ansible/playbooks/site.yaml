@@ -1,0 +1,120 @@
+- name: Bootstrap server
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Verify if we can connect with ansible user
+      ansible.builtin.wait_for_connection:
+        timeout: 5
+      vars:
+        ansible_user: ansible
+      register: ansible_connected
+      ignore_errors: true
+      ignore_unreachable: true
+
+    - name: Run bootstrap if needed
+      when: ansible_connected is failed or ansible_connected is unreachable
+      block:
+        - name: Reset SSH connection
+          ansible.builtin.meta: reset_connection
+
+        - name: Run bootstrap role as root
+          ansible.builtin.include_role:
+            name: bootstrap
+          vars:
+            ansible_user: "{{ initial_user }}"
+            ansible_become: "{{ initial_user != 'root' }}"
+            ansible_become_user: root
+
+        - name: Reset SSH connection after bootstrap
+          ansible.builtin.meta: reset_connection
+
+- name: Provision users and harden sshd
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Ensure sudo is installed
+      ansible.builtin.apt:
+        name: sudo
+        state: present
+
+    - name: Ensure group for allowed SSH users
+      ansible.builtin.group:
+        name: sshusers
+        state: present
+
+    - name: Ensure group for admins with sudo
+      ansible.builtin.group:
+        name: sysadmins
+        state: present
+
+    # The ansible user must be allowed to log in, or sshd hardening locks you out
+    - name: Add ansible to the allowed SSH group
+      ansible.builtin.user:
+        name: ansible
+        groups: sshusers
+        append: true
+
+    - name: Create one system user per person
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        shell: /bin/bash
+        create_home: true
+        groups: [sshusers, sysadmins]
+        append: true
+      loop: "{{ users }}"
+
+    - name: Install authorized keys for each person (exclusive)
+      ansible.posix.authorized_key:
+        user: "{{ item.name }}"
+        key: "{{ item.sshKey }}"
+        state: present
+        # removes any key not listed here
+        exclusive: true
+      loop: "{{ users }}"
+
+    # People have no password, so sudo needs NOPASSWD. Restrict this group to real admins.
+    - name: Allow sudo for the sysadmins group
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/sysadmins
+        content: "%sysadmins ALL=(ALL) NOPASSWD:ALL\n"
+        owner: root
+        group: root
+        mode: "0440"
+        validate: /usr/sbin/visudo -cf %s
+
+    # The "00-" prefix makes it load first: in sshd the first value wins
+    - name: Harden sshd
+      ansible.builtin.copy:
+        dest: /etc/ssh/sshd_config.d/00-hardening.conf
+        content: |
+          PermitRootLogin no
+          PasswordAuthentication no
+          KbdInteractiveAuthentication no
+          PubkeyAuthentication yes
+          AllowGroups sshusers
+          MaxAuthTries 3
+          LogLevel VERBOSE
+        owner: root
+        group: root
+        mode: "0644"
+        validate: /usr/sbin/sshd -t -f %s
+      notify: Reload sshd
+
+    # Optional: remove the Terraform-injected key from root and lock its password
+    - name: Remove root authorized_keys
+      ansible.builtin.file:
+        path: /root/.ssh/authorized_keys
+        state: absent
+
+    - name: Lock the root password
+      ansible.builtin.user:
+        name: root
+        password_lock: true
+
+  handlers:
+    - name: Reload sshd
+      ansible.builtin.service:
+        name: ssh
+        state: reloaded

@@ -102,3 +102,7 @@
     proto: udp
     comment: "WireGuard VPN"
   failed_when: false
+
+# Apply server changes before later roles, which may fail before play-end handlers.
+- name: Apply pending WireGuard configuration changes
+  ansible.builtin.meta: flush_handlers

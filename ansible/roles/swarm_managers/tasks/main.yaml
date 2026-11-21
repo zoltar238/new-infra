@@ -1,0 +1,26 @@
+---
+- name: Install Docker SDK for the system Python
+  ansible.builtin.apt:
+    name: python3-docker
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+
+- name: Init a new swarm with default parameters
+  community.docker.docker_swarm:
+    state: present
+    advertise_addr: "{{ ansible_host | default(inventory_hostname) }}"
+    listen_addr: "0.0.0.0:2377"
+
+- name: Get manager join token
+  community.docker.docker_swarm_info:
+  register: swarm_info_final
+  no_log: true
+
+- name: Store join tokens as facts
+  ansible.builtin.set_fact:
+    manager_token: "{{ swarm_info_final.swarm_facts.JoinTokens.Manager }}"
+    worker_token: "{{ swarm_info_final.swarm_facts.JoinTokens.Worker }}"
+    manager_addr: "{{ ansible_host | default(inventory_hostname) }}:2377"
+  no_log: true

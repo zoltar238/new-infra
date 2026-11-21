@@ -1,0 +1,46 @@
+---
+- name: Install Docker SDK for the system Python
+  ansible.builtin.apt:
+    name: python3-docker
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+
+- name: Check manager join information is available
+  ansible.builtin.assert:
+    that:
+      - hostvars[swarm_workers_manager].worker_token is defined
+      - hostvars[swarm_workers_manager].manager_addr is defined
+    fail_msg: Run the manager play before joining workers so its join facts are available.
+
+- name: Join swarm as worker
+  community.docker.docker_swarm:
+    state: join
+    advertise_addr: "{{ ansible_host | default(inventory_hostname) }}"
+    join_token: "{{ hostvars[swarm_workers_manager]['worker_token'] }}"
+    remote_addrs:
+      - "{{ hostvars[swarm_workers_manager]['manager_addr'] }}"
+  no_log: true
+
+# Joining is a no-op for any existing Swarm membership, including another cluster.
+- name: Read worker node identity after joining
+  community.docker.docker_host_info:
+  register: _swarm_worker_info
+  until: _swarm_worker_info.host_info.Swarm.LocalNodeState == 'active'
+  retries: 10
+  delay: 3
+  when: not ansible_check_mode
+
+- name: Verify worker is ready on the selected manager
+  community.docker.docker_node_info:
+    name: "{{ _swarm_worker_info.host_info.Swarm.NodeID }}"
+  delegate_to: "{{ swarm_workers_manager }}"
+  register: _swarm_worker_node
+  until: >-
+    _swarm_worker_node.nodes | default([]) | length == 1 and
+    _swarm_worker_node.nodes[0].Status.State == 'ready' and
+    _swarm_worker_node.nodes[0].Spec.Role == 'worker'
+  retries: 10
+  delay: 3
+  when: not ansible_check_mode
