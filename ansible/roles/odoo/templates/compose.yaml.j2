@@ -1,3 +1,5 @@
+{% set odoo_dir = odoo_dir_prefix ~ item.project_name %}
+{% set odoo_domain = item.domain | default('') %}
 services:
   db:
     image: pgvector/pgvector:pg18-trixie
@@ -14,12 +16,12 @@ services:
       - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
       - db_data:/var/lib/postgresql/data/pgdata
-      - {{item.odoo_dir}}/config/postgresql.conf:/etc/postgresql/postgresql.conf
+      - {{ odoo_dir }}/config/postgresql.conf:/etc/postgresql/postgresql.conf
     restart: unless-stopped
 
   odoo:
     container_name: odoo
-    image: odoo:${ODOO_VERSION:-19}
+    image: odoo:{{ item.version }}
     deploy:
       replicas: 1
       placement:
@@ -32,36 +34,35 @@ services:
         reservations:
           memory: 300M
           cpus: '0.100'
-{% if item.domain %}
+{% if odoo_domain %}
       labels:
         traefik.enable: "true"
         traefik.swarm.network: {{ traefik_swarm_network | to_json }}
-        traefik.http.routers.{{ item.project_name }}-web.rule: {{ ('Host(`' ~ item.domain ~ '`)') | to_json }}
+        traefik.http.routers.{{ item.project_name }}-web.rule: {{ ('Host(`' ~ odoo_domain ~ '`)') | to_json }}
         traefik.http.routers.{{ item.project_name }}-web.entrypoints: websecure
         traefik.http.routers.{{ item.project_name }}-web.service: {{ item.project_name }}-web
         traefik.http.services.{{ item.project_name }}-web.loadbalancer.server.port: "8069"
-        traefik.http.routers.{{ item.project_name }}-ws.rule: {{ ('Host(`' ~ item.domain ~ '`) && (Path(`/websocket`) || PathPrefix(`/websocket/`))') | to_json }}
+        traefik.http.routers.{{ item.project_name }}-ws.rule: {{ ('Host(`' ~ odoo_domain ~ '`) && (Path(`/websocket`) || PathPrefix(`/websocket/`))') | to_json }}
         traefik.http.routers.{{ item.project_name }}-ws.entrypoints: websecure
         traefik.http.routers.{{ item.project_name }}-ws.priority: "100"
         traefik.http.routers.{{ item.project_name }}-ws.service: {{ item.project_name }}-ws
         traefik.http.services.{{ item.project_name }}-ws.loadbalancer.server.port: "8072"
 {% endif %}
-{% if item.domain %}
+{% if odoo_domain %}
     networks:
       - default
       - proxy
 {% else %}
     ports:
       - target: 8069
-        published: ${ODOO_EXPOSED_PORT:-8069}
         protocol: tcp
         mode: ingress
 {% endif %}
     volumes:
-      - {{item.odoo_dir}}/config:/etc/odoo
+      - {{ odoo_dir }}/config:/etc/odoo
       - odoo_data:/var/lib/odoo
 {% for repo in item.repos %}
-      - {{ item.odoo_dir }}/{{ repo.name }}:/mnt/{{ repo.name }}
+      - {{ odoo_dir }}/{{ repo.name }}:/mnt/{{ repo.name }}
 {% endfor %}
     environment:
       # Postgres container name
@@ -82,7 +83,7 @@ volumes:
   db_data:
     name: db_data
     external: ${VOLUME_EXTERNAL:-false}
-{% if item.domain %}
+{% if odoo_domain %}
 networks:
   default: {}
   proxy:

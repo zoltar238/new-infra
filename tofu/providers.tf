@@ -2,11 +2,15 @@ terraform {
   required_providers {
     hcloud = {
       source  = "hetznercloud/hcloud"
-      version = "~> 1.70"
+      version = "1.70.2"
     }
     bitwarden-secrets = {
       source  = "bitwarden/bitwarden-secrets"
       version = "1.0.1"
+    }
+    ansible = {
+      version = "1.5.2"
+      source  = "ansible/ansible"
     }
   }
 }

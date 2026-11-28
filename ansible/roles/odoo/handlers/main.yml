@@ -1,6 +1,15 @@
 ---
-- name: Restart Docker
-  ansible.builtin.service:
-    name: docker
-    state: restarted
-  listen: restart docker service
+- name: Deploy changed Odoo stacks
+  ansible.builtin.command:
+    argv:
+      - docker
+      - stack
+      - deploy
+      - --compose-file
+      - "{{ compose_result.dest }}"
+      - "{{ compose_result.item.project_name }}"
+  loop: "{{ odoo_compose.results | selectattr('changed') | list }}"
+  loop_control:
+    loop_var: compose_result
+    label: "{{ compose_result.item.project_name }}"
+  delegate_to: "{{ groups['swarm_managers'][0] }}"

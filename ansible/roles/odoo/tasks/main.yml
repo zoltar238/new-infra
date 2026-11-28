@@ -1,39 +1,22 @@
 ---
-- name: Create project map
-  set_fact:
-    odoo_installations: >-
-      {{
-        odoo_installations | default([]) + 
-      [{
-        'odoo_dir': "/opt/odoo_" + item.project_name,
-        'project_name': item.project_name,
-        'domain': item.domain | default(''),
-        'max_memory': item.max_memory,
-        'max_cpus': item.max_cpus,
-        'swarm_manager_odoo_dir': '/opt/' ~ ansible_facts['hostname'],
-        'repos': item.repos
-      }]
-      }}
-  loop: "{{odoo_hosts}}"
-
-- name: Create swarm manager project dir
+- name: Create swarm manager project dir with hosts
   file:
-    path: "{{ item.swarm_manager_odoo_dir }}"
+    path: "/opt/{{ item.project_name }}"
     state: directory
-  loop: "{{odoo_installations}}"
+  loop: "{{ odoo_hosts }}"
   delegate_to: "{{ groups['swarm_managers'][0] }}"
 
 - name: Create project dir
   file:
-    path: "{{item.odoo_dir}}"
+    path: "{{ odoo_dir_prefix }}{{ item.project_name }}"
     state: directory
-  loop: "{{odoo_installations}}"
+  loop: "{{ odoo_hosts }}"
 
 - name: Clone addons repo for each install
   ansible.builtin.git:
     repo: "{{ _prefix }}/{{ _repo }}"
-    dest: "{{ item.0.odoo_dir }}/{{ item.1.name }}"
-  loop: "{{ odoo_installations | subelements('repos') }}"
+    dest: "{{ odoo_dir_prefix }}{{ item.0.project_name }}/{{ item.1.name }}"
+  loop: "{{ odoo_hosts | subelements('repos') }}"
   environment:
     GIT_TERMINAL_PROMPT: 0
   no_log: false
@@ -44,31 +27,33 @@
 - name: Generate .env files
   template:
     src: .env.j2
-    dest: "{{item.odoo_dir}}/.env"
-  loop: "{{odoo_installations}}"
+    dest: "{{ odoo_dir_prefix }}{{ item.project_name }}/.env"
+  loop: "{{ odoo_hosts }}"
   when: lookup('ansible.builtin.fileglob', role_path ~ '/templates/.env.j2') | length > 0
 
 - name: Create config dir
   file:
-    path: "{{item.odoo_dir}}/config"
+    path: "{{ odoo_dir_prefix }}{{ item.project_name }}/config"
     state: directory
-  loop: "{{odoo_installations}}"
+  loop: "{{ odoo_hosts }}"
 
 - name: Generate odoo.conf files
   template:
     src: odoo.conf.j2
-    dest: "{{ item.odoo_dir }}/config/odoo.conf"
-  loop: "{{ odoo_installations }}"
+    dest: "{{ odoo_dir_prefix }}{{ item.project_name }}/config/odoo.conf"
+  loop: "{{ odoo_hosts }}"
 
 - name: Generate postgresql.conf files
   template:
     src: postgresql.conf.j2
-    dest: "{{ item.odoo_dir }}/config/postgresql.conf"
-  loop: "{{ odoo_installations }}"
+    dest: "{{ odoo_dir_prefix }}{{ item.project_name }}/config/postgresql.conf"
+  loop: "{{ odoo_hosts }}"
 
 - name: Generate compose files
-  template:
+  ansible.builtin.template:
     src: compose.yaml.j2
-    dest: "{{ item.swarm_manager_odoo_dir }}/compose.yaml"
-  loop: "{{odoo_installations}}"
+    dest: "/opt/{{ item.project_name }}/compose.yaml"
+  loop: "{{ odoo_hosts }}"
   delegate_to: "{{ groups['swarm_managers'][0] }}"
+  register: odoo_compose
+  notify: Deploy changed Odoo stacks

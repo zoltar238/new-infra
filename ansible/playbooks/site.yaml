@@ -32,6 +32,7 @@
 - name: Provision users and harden sshd
   hosts: all
   become: true
+  gather_facts: false
 
   tasks:
     - name: Ensure sudo is installed

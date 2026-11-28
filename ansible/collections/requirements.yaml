@@ -3,3 +3,5 @@ collections:
   - name: ansible.utils
   - name: bitwarden.secrets
   - name: community.docker
+  - name: cloud.terraform
+    version: '4.0.0'

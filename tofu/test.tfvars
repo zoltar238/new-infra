@@ -29,6 +29,38 @@ vpn_node = {
   }
 }
 
+
+proxy_nodes = {
+  "proxy1" = {
+    server_type  = "cpx12"
+    location     = "nbg1"
+    image        = "ubuntu-26.04"
+    ipv4_enabled = false
+    ipv6_enabled = false
+    private_ipv4 = "10.0.1.40"
+    labels = {
+      "swarm" = "worker"
+      "role"  = "proxy"
+    }
+  }
+}
+
+swarm_manager_nodes = {
+  "manager1" = {
+    server_type  = "cpx12"
+    location     = "nbg1"
+    image        = "ubuntu-26.04"
+    ipv4_enabled = false
+    ipv6_enabled = false
+    private_ipv4 = "10.0.1.20"
+    labels = {
+      "test"  = "test",
+      "swarm" = "manager"
+      "role"  = "swarm_manager"
+    }
+  }
+}
+
 odoo_nodes = {
   "odoo1" = {
     server_type  = "cx23"
@@ -56,32 +88,27 @@ odoo_nodes = {
   }
 }
 
-proxy_nodes = {
-  "proxy1" = {
-    server_type  = "cpx12"
-    location     = "nbg1"
-    image        = "ubuntu-26.04"
-    ipv4_enabled = false
-    ipv6_enabled = false
-    private_ipv4 = "10.0.1.40"
-    labels = {
-      "swarm" = "worker"
-      role    = "proxy"
+odoo_tenants = {
+  "ricardo" = {
+    node       = "odoo1"
+    version    = "19.0-20261123"
+    workers    = 2
+    max_memory = "4G"
+    max_cpus   = 2
+    repos = {
+      "maywi-modules" = "https://github.com/Stratekia/maywi-modules.git"
+      "enterprise"    = "https://github.com/Stratekia/odoo-enterprise-modules.git"
     }
   }
-}
-
-swarm_manager_nodes = {
-  "manager1" = {
-    server_type  = "cpx12"
-    location     = "nbg1"
-    image        = "ubuntu-26.04"
-    ipv4_enabled = false
-    ipv6_enabled = false
-    private_ipv4 = "10.0.1.20"
-    labels = {
-      "test"    = "test",
-      "manager" = "manager"
+  "manolo" = {
+    node       = "odoo2"
+    version    = "19.0-20261123"
+    workers    = 2
+    max_memory = "4G"
+    max_cpus   = 2
+    repos = {
+      "maywi-modules" = "https://github.com/Stratekia/maywi-modules.git"
+      "enterprise"    = "https://github.com/Stratekia/odoo-enterprise-modules.git"
     }
   }
 }

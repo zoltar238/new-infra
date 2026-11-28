@@ -1,6 +1,40 @@
 # This file is maintained automatically by "tofu init".
 # Manual edits may be lost in future updates.
 
+provider "registry.opentofu.org/ansible/ansible" {
+  version     = "1.5.2"
+  constraints = "1.5.2"
+  hashes = [
+    "h1:77ygwFyon0d6j1UxBJJ+3/u4+maqAQLGyK/hZnfx06E=",
+    "h1:Ju6NVvXtFWPjP4nOgSo5B8n6ZO0TxC5WKOhB54ODzA0=",
+    "h1:Yz1AAB/RK2Gya15B7eTMxus2uFKx/bymqO4+pvhy37o=",
+    "h1:iWtWBoN5Jud5iE3Nj7ET+NxI6AFjG7QIKANFlWFFfSE=",
+    "h1:jCrxh09hQaFIblIn6d9Z+Tp6Nn3tT0+48zkN6duOM64=",
+    "h1:jMCeY7CN0WhdPmSC9EgRc5FA70tnLAJp0HYUTcNsAfs=",
+    "h1:jocaXofuPS+ijc724Tt+xrY5um8ogq2fH0+pUqK8FoQ=",
+    "h1:kzpiOeYDWDZ5s3tuL+M/FPxIU4nadu8GZUckYZNf/kQ=",
+    "h1:lj/TMJrtqiBcuNuM18mn3heZ4XnnU/ow+WQeZGdjmWM=",
+    "h1:tMTidL2GY1pv+5L2O2MSTd85h0t/EW0v+NQa19HwnRk=",
+    "h1:vPGk8ODwrXCztsgmy8WFOMNG0UM1qXWtanJeaxYXADA=",
+    "h1:vWgHJ9fjdLjTnoNykoSZQ7eomCDbeLhu+U4sK7iXhrI=",
+    "h1:ynXfNa3xHd3peDnwEG5y4iFYIc5xvuZLoWbI2YSvacA=",
+    "zh:013e3e21ccfd254d3a3e7f2db97d5b5a5df0707120dfad91e76fed84b0322e7a",
+    "zh:020e13bae6321f76e3012c2124af73ed335b053e85d3eb531cccdcf591fb1a75",
+    "zh:10e4a44a3ad1a814e3ec152c5fbc207d29d46f8e5ec338de1ba4d67ba1b37a57",
+    "zh:14a71679162a764992cb7ccab503d8eb115ce2afbc7b8b07a66b0d62ceb6f8b0",
+    "zh:14ee4ea0652219e48b8d49ee4dc2b24bc8aa50a3f10ab9524049a1461fee52b6",
+    "zh:2ddf8629f443a2f1b626a6e6999cc1f17f45b6ec827093564b1350e4a81180bb",
+    "zh:35f5452e2415caa39dc86033d7a3e5b74158abea178e02c982b6b167ff06552f",
+    "zh:3aea55acc58abf3adc528511853044b8189138ce18e0dde2ea68858e79698638",
+    "zh:864c51a8a95cde589b0e09ef56c3df544c9fd3fe96d6465407a64fba2dc9cd99",
+    "zh:b2e2ff8d8180cd473aa5f118883fd180a2ae9edc213a875856bd56664382b28a",
+    "zh:d55f8bbe3a607278c1e48dba687c0d9083971a78e7fc2ba8f4b8ba32c7a624b4",
+    "zh:dc77d94e56f4706156c6812ef534e4a11f8b287edef8d8440729564fac62eec0",
+    "zh:e5798a4adde9fc19f2e79718137a708abed4414730a5020132abb00bb38c6a45",
+    "zh:f569b65999264a9416862bca5cd2a6177d94ccb0424f3a4ef424428912b9cb3c",
+  ]
+}
+
 provider "registry.opentofu.org/bitwarden/bitwarden-secrets" {
   version     = "1.0.1"
   constraints = "1.0.1"
